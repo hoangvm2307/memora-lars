@@ -39,7 +39,7 @@ import matplotlib.pyplot as plt
 load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-MODEL = "llama3"
+MODEL = "llama3.1:8b"
 
 model = Ollama(model=MODEL)
 embeddings = OllamaEmbeddings(model=MODEL)
@@ -150,8 +150,8 @@ token_split_texts = []
 for text in character_split_texts:
     token_split_texts += token_splitter.split_text(text)
 
-print(word_wrap(token_split_texts[10]))
-print(f"\nTotal chunks: {len(token_split_texts)}")
+# print(word_wrap(token_split_texts[10]))
+# print(f"\nTotal chunks: {len(token_split_texts)}")
 
 # %%
 embedding_function = SentenceTransformerEmbeddingFunction()
@@ -178,7 +178,7 @@ def augment_query_generated(query, model=None):
     if model is None:
         model = Ollama(model=MODEL)
 
-    prompt = """You are a helpful expert financial research assistant. 
+    prompt = """You are a helpful expert software development assistant. 
    Provide an example answer to the given question, that might be found in a document like an annual report."""
 
     messages = [
@@ -193,7 +193,7 @@ def augment_query_generated(query, model=None):
     
     return response
 
-original_query = "What was the total profit for the year, and how does it compare to the previous year?"
+original_query = "What is the purpose of .NET"
 hypothetical_answer = augment_query_generated(original_query)
 
 joint_query = f"{original_query} {hypothetical_answer}"
