@@ -31,7 +31,7 @@ import matplotlib.pyplot as plt
 load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-MODEL = "llama3"
+MODEL = "llama3.1:8b"
 
 model = Ollama(model=MODEL)
 embeddings = OllamaEmbeddings(model=MODEL)
@@ -182,6 +182,7 @@ original_query = (
 aug_queries = generate_multi_query(original_query)
 
 # 1. First step show the augmented queries
+print("Augmented Query ----------------------")
 for query in aug_queries:
     print("\n", query)
 

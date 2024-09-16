@@ -11,7 +11,7 @@ QUERY_URL = f"{BASE_URL}/query"
 
 def test_process_pdf():
     # Path to your test PDF file
-    pdf_path = "dotnet.pdf"
+    pdf_path = "english.pdf"
     data = {"filename": pdf_path}
     response = requests.post(PROCESS_PDF_URL, json=data)
 
@@ -24,8 +24,10 @@ def test_process_pdf():
 
 def test_query(collection_name):
     query_data = {
-        "query": "What is the purpose of .NET",
+        "query": " generate a set of english quiz questions",
         "collection_name": collection_name,
+        "prompt_type": "quiz",
+        "quiz_count": 10,
     }
 
     response = requests.post(QUERY_URL, json=query_data)

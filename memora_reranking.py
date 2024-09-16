@@ -32,17 +32,14 @@ import matplotlib.pyplot as plt
 load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-MODEL = "llama3"
+MODEL = "llama3.1:8b"
 
 model = Ollama(model=MODEL)
 embeddings = OllamaEmbeddings(model=MODEL)
 
 parser = StrOutputParser()
 chain = model | parser
-
-# ### Utility functions
-#
-
+ 
 
 def normalize_text(text):
     return unicodedata.normalize("NFKD", text).encode("ASCII", "ignore").decode("ASCII")
@@ -116,7 +113,7 @@ def create_citation(document, relevant_text):
 
 # ### Load and split documents
 #
-
+# Load PDF Content and return token_split_texts
 reader = PdfReader("dotnet.pdf")
 pdf_texts = [p.extract_text().strip() for p in reader.pages]
 
@@ -133,6 +130,7 @@ token_split_texts = []
 for text in character_split_texts:
     token_split_texts += token_splitter.split_text(text)
 
+# Add documents to Chroma collection
 embedding_function = SentenceTransformerEmbeddingFunction()
 # print(embedding_function([token_split_texts[10]]))
 
@@ -146,6 +144,7 @@ ids = [str(i) for i in range(len(token_split_texts))]
 chroma_collection.add(ids=ids, documents=token_split_texts)
 count = chroma_collection.count()
 
+# Retrieve documents
 query = "What was the total revenue for the year?"
 
 results = chroma_collection.query(
@@ -160,6 +159,7 @@ for document in results["documents"][0]:
 
 from sentence_transformers import CrossEncoder
 
+# Rank documents with cross-encoder
 cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
 pairs = [[query, doc] for doc in retrieved_documents]
@@ -173,18 +173,37 @@ print("New Ordering:")
 for o in np.argsort(scores)[::-1]:
     print(o + 1)
 
-original_query = (
-    "What were the most important factors that contributed to increases in revenue?"
-)
+original_query = "What is the purpose of .NET"
 
-generated_queries = [
-    "What were the major drivers of revenue growth?",
-    "Were there any new product launches that contributed to the increase in revenue?",
-    "Did any changes in pricing or promotions impact the revenue growth?",
-    "What were the key market trends that facilitated the increase in revenue?",
-    "Did any acquisitions or partnerships contribute to the revenue growth?",
-]
 
+def generate_multi_query(query, model=None):
+    if model is None:
+        model = Ollama(model=MODEL)
+
+    prompt = """
+    You are a knowledgeable software development assistant. 
+    Your users are inquiring about software information. 
+    For the given question, propose up to five related questions to assist them in finding the information they need. 
+    Provide concise, single-topic questions (withouth compounding sentences) that cover various aspects of the topic. 
+    Ensure each question is complete and directly related to the original inquiry. 
+    List each question on a separate line without numbering.
+                """
+    messages = [
+        {
+            "role": "system",
+            "content": prompt,
+        },
+        {"role": "user", "content": query},
+    ]
+
+    response = model.invoke(messages)
+    aug_queries = [q.strip() for q in response.split("\n") if q.strip()]
+    return aug_queries
+
+generated_queries = generate_multi_query(original_query)
+print("Augmented Query ----------------------")
+for query in generated_queries:
+    print("\n", query)
 # concatenate the original query with the generated queries
 queries = [original_query] + generated_queries
 
@@ -192,6 +211,7 @@ queries = [original_query] + generated_queries
 results = chroma_collection.query(
     query_texts=queries, n_results=10, include=["documents", "embeddings"]
 )
+
 retrieved_documents = results["documents"]
 
 # Deduplicate the retrieved documents
@@ -224,11 +244,11 @@ context = "\n\n".join(top_documents)
 
 
 # Generate the final answer using the OpenAI model
-def generate_multi_query(query, context, model="gpt-3.5-turbo"):
-
+def generate_final_answer(query, context, model=MODEL):
+    model = Ollama(model=MODEL)
     prompt = """
-    You are a knowledgeable financial research assistant. 
-    Your users are inquiring about an annual report. 
+    You are a knowledgeable software development assistant. 
+    Your users are inquiring about information about software. 
     """
 
     messages = [
@@ -247,6 +267,6 @@ def generate_multi_query(query, context, model="gpt-3.5-turbo"):
     return aug_queries
 
 
-res = generate_multi_query(query=original_query, context=context)
+res = generate_final_answer(query=original_query, context=context)
 print("Final Answer:")
 print(res)

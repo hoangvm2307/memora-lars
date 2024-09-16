@@ -7,6 +7,7 @@ import chromadb
 from sentence_transformers import CrossEncoder
 import numpy as np
 from query_service import generate_final_answer, generate_multi_query
+from params.answer_params import AnswerParams
 from chroma_service import add_documents_to_chroma
 from pdf_service import load_and_split_pdf
 
@@ -53,6 +54,10 @@ def query():
 
     original_query = data["query"]
     collection_name = data["collection_name"]
+    prompt_type = data["prompt_type"] if "prompt_type" in data else "default"
+    quiz_count = data["quiz_count"] if "quiz_count" in data else 5
+
+    print(f"Quiz count: {quiz_count}")
     chroma_collection = chroma_client.get_collection(collection_name)
 
     # Generate multi queries related to original query
@@ -82,7 +87,8 @@ def query():
 
     # Generate final answer based on the top documents' context
     context = "\n\n".join(top_documents)
-    final_answer = generate_final_answer(original_query, context)
+    params = AnswerParams(original_query, context, prompt_type, quiz_count)
+    final_answer = generate_final_answer(params)
 
     # Prepare the response with top documents and their scores
     top_documents_with_scores = [
