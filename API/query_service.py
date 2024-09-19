@@ -6,10 +6,11 @@ MODEL = "llama3.1:8b"
 
 
 def generate_final_answer(config: AnswerParams, model=MODEL):
+    
     model = Ollama(model=MODEL)
 
-    if config.prompt_type == "quiz":
-        prompt = prompts[config.prompt_type].format(quiz_count=config.quiz_count)
+    if config.prompt_type == "quiz" or config.prompt_type == "card":
+        prompt = prompts[config.prompt_type].format(count=config.count)
     else:
         prompt = prompts.get(config.prompt_type, prompts["default"])
     print(f"Prompt: {prompt}")
