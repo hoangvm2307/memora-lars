@@ -24,10 +24,10 @@ def test_process_pdf():
 
 def test_query(collection_name):
     query_data = {
-        "query": " generate a set of english quiz questions",
+        "query": "Generate english quizzes",
         "collection_name": collection_name,
         "prompt_type": "quiz",
-        "quiz_count": 10,
+        "count": 10,
     }
 
     response = requests.post(QUERY_URL, json=query_data)

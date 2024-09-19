@@ -55,9 +55,9 @@ def query():
     original_query = data["query"]
     collection_name = data["collection_name"]
     prompt_type = data["prompt_type"] if "prompt_type" in data else "default"
-    quiz_count = data["quiz_count"] if "quiz_count" in data else 5
+    count = data["count"] if "count" in data else 5
 
-    print(f"Quiz count: {quiz_count}")
+    print(f"Quiz count: {count}")
     chroma_collection = chroma_client.get_collection(collection_name)
 
     # Generate multi queries related to original query
@@ -87,7 +87,7 @@ def query():
 
     # Generate final answer based on the top documents' context
     context = "\n\n".join(top_documents)
-    params = AnswerParams(original_query, context, prompt_type, quiz_count)
+    params = AnswerParams(original_query, context, prompt_type, count)
     final_answer = generate_final_answer(params)
 
     # Prepare the response with top documents and their scores
