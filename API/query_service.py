@@ -1,56 +1,40 @@
 from langchain_community.llms import Ollama
 from prompts import prompts
 from params.answer_params import AnswerParams
+import vertexai
+from langchain_google_vertexai import VertexAI
 
 MODEL = "llama3.1:8b"
 
 
 def generate_final_answer(config: AnswerParams, model=MODEL):
-    
-    model = Ollama(model=MODEL)
+    vertexai.init(project="memora-436413", location="asia-southeast1")
+    MODEL = "gemini-1.5-flash-001"
+    model = VertexAI(model_name=MODEL)
+    prompt = prompts[config.prompt_type].format(
+            count=config.count, context=config.context, query=config.query
+        )
 
-    if config.prompt_type == "quiz" or config.prompt_type == "card":
-        prompt = prompts[config.prompt_type].format(count=config.count)
-    else:
-        prompt = prompts.get(config.prompt_type, prompts["default"])
-    print(f"Prompt: {prompt}")
-    messages = [
-        {
-            "role": "system",
-            "content": prompt,
-        },
-        {
-            "role": "user",
-            "content": f"based on the following context:\n\n{config.context}\n\nAnswer the query: '{config.query}'",
-        },
-    ]
+    response = model.invoke(prompt)
 
-    response = model.invoke(messages)
-    aug_queries = [q.strip() for q in response.split("\n") if q.strip()]
-    return aug_queries
+    response = [q.strip() for q in response.split("\n") if q.strip()]
+    return response
 
 
 def generate_multi_query(query, model=None):
-    if model is None:
-        model = Ollama(model=MODEL)
+    vertexai.init(project="memora-436413", location="asia-southeast1")
+    MODEL = "gemini-1.5-flash-001"
+    model = VertexAI(model_name=MODEL)
 
-    # prompt = """
-    # You are a knowledgeable software development assistant.
-    # Your users are inquiring about software information.
-    # For the given question, propose up to five related questions to assist them in finding the information they need.
-    # Provide concise, single-topic questions (withouth compounding sentences) that cover various aspects of the topic.
-    # Ensure each question is complete and directly related to the original inquiry.
-    # List each question on a separate line without numbering.
-    # """
-    prompt = prompts.get("multi_query", prompts["default"])
-    messages = [
-        {
-            "role": "system",
-            "content": prompt,
-        },
-        {"role": "user", "content": query},
-    ]
+    prompt = """
+    You are a knowledgeable software development assistant. 
+    Your users are inquiring about software information. 
+    For the given question, propose up to five related questions to assist them in finding the information they need. 
+    Provide concise, single-topic questions (without compounding sentences) that cover various aspects of the topic. 
+    Ensure each question is complete and directly related to the original inquiry. 
+    List each question on a separate line without numbering.
+    """
 
-    response = model.invoke(messages)
+    response = model.invoke(prompt + "\n\n" + query)
     aug_queries = [q.strip() for q in response.split("\n") if q.strip()]
     return aug_queries

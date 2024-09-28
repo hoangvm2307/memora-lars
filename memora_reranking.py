@@ -135,6 +135,7 @@ embedding_function = SentenceTransformerEmbeddingFunction()
 # print(embedding_function([token_split_texts[10]]))
 
 chroma_client = chromadb.Client()
+
 chroma_collection = chroma_client.create_collection(
     "microsoft-collection", embedding_function=embedding_function
 )

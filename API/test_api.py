@@ -24,9 +24,9 @@ def test_process_pdf():
 
 def test_query(collection_name):
     query_data = {
-        "query": "Generate english quizzes",
+        "query": "",
         "collection_name": collection_name,
-        "prompt_type": "quiz",
+        "prompt_type": "multi_query",
         "count": 10,
     }
 
