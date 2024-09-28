@@ -152,6 +152,7 @@ retrieved_documents = results["documents"][0]
 
 
 def generate_multi_query(query, model=None):
+
     if model is None:
         model = Ollama(model=MODEL)
 

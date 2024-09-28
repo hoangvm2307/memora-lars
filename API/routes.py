@@ -56,7 +56,8 @@ def query():
     collection_name = data["collection_name"]
     prompt_type = data["prompt_type"] if "prompt_type" in data else "default"
     count = data["count"] if "count" in data else 5
-
+ 
+    
     print(f"Quiz count: {count}")
     chroma_collection = chroma_client.get_collection(collection_name)
 
