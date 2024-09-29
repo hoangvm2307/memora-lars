@@ -7,11 +7,15 @@ from langchain.text_splitter import (
 )
 import numpy as np
 import chromadb
+from chromadb.config import Settings
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 from helper_utils import word_wrap
 from pypdf import PdfReader
-
 import vertexai
+import hashlib
+import pickle
+from concurrent.futures import ProcessPoolExecutor
+
 # Setup environment
 load_dotenv()
 
@@ -19,20 +23,20 @@ load_dotenv()
 vertexai.init(project="memora-436413", location="asia-southeast1")
 
 # Set up the VertexAI model
-MODEL = "gemini-1.5-flash-001"  # or any other appropriate Vertex AI model
+MODEL = "gemini-1.5-flash-001"
 model = VertexAI(model_name=MODEL)
 
 parser = StrOutputParser()
 chain = model | parser
-
-# The rest of your functions (normalize_text, load_documents, extract_highlighted_text, create_citation) remain the same
 
 # Load and split documents
 reader = PdfReader("dotnet.pdf")
 pdf_texts = [p.extract_text().strip() for p in reader.pages]
 
 character_splitter = RecursiveCharacterTextSplitter(
-    separators=["\n\n", "\n", ". ", " ", ""], chunk_size=750, chunk_overlap=30
+    separators=["\n\n", "\n", ". ", " ", ""], 
+    chunk_size=750,  # Changed from 1000 to 750
+    chunk_overlap=50  # Added overlap
 )
 character_split_texts = character_splitter.split_text("\n\n".join(pdf_texts))
 
@@ -44,25 +48,60 @@ token_split_texts = []
 for text in character_split_texts:
     token_split_texts += token_splitter.split_text(text)
 
+# Embedding cache implementation
+def get_embedding_cache_key(text):
+    return hashlib.md5(text.encode()).hexdigest()
+
+def get_or_create_embedding(text, embedding_function):
+    cache_key = get_embedding_cache_key(text)
+    if cache_key in embedding_cache:
+        return embedding_cache[cache_key]
+    embedding = embedding_function([text])[0]
+    embedding_cache[cache_key] = embedding
+    return embedding
+
+# Parallel processing for embedding generation
+def create_embedding_parallel(texts, embedding_function, max_workers=4):
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        embeddings = list(executor.map(embedding_function, texts))
+    return embeddings
+
 # Add documents to Chroma collection
 embedding_function = SentenceTransformerEmbeddingFunction()
 
-chroma_client = chromadb.Client()
+# Use HNSW index
+chroma_client = chromadb.Client(Settings(
+    chroma_db_impl="duckdb+parquet",
+    persist_directory="db",
+    anonymized_telemetry=False
+))
 
 chroma_collection = chroma_client.create_collection(
-    "microsoft-collection", embedding_function=embedding_function
+    "microsoft-collection", 
+    embedding_function=embedding_function,
+    hnsw_config={
+        "M": 64,
+        "efConstruction": 128,
+        "efSearch": 128
+    }
 )
+
+# Use embedding cache and parallel processing
+embedding_cache = {}
+embeddings = create_embedding_parallel(token_split_texts, embedding_function)
 
 # Extract the embeddings of the token_split_texts
 ids = [str(i) for i in range(len(token_split_texts))]
-chroma_collection.add(ids=ids, documents=token_split_texts)
+chroma_collection.add(ids=ids, documents=token_split_texts, embeddings=embeddings)
 count = chroma_collection.count()
 
 # Retrieve documents
 query = "What was the total revenue for the year?"
 
 results = chroma_collection.query(
-    query_texts=query, n_results=5, include=["documents", "embeddings"]
+    query_texts=query, 
+    n_results=3,  # Changed from 5 to 3
+    include=["documents", "embeddings"]
 )
 
 retrieved_documents = results["documents"][0]
@@ -106,16 +145,10 @@ def generate_multi_query(query, model=None):
     aug_queries = [q.strip() for q in response.split("\n") if q.strip()]
     return aug_queries
 
-# generated_queries = generate_multi_query(original_query)
-# print("Augmented Query ----------------------")
-# for query in generated_queries:
-#     print("\n", query)
-
-# # Concatenate the original query with the generated queries
-# queries = [original_query] + generated_queries
-
 results = chroma_collection.query(
-    query_texts=original_query, n_results=5, include=["documents", "embeddings"]
+    query_texts=original_query, 
+    n_results=3,  # Changed from 5 to 3
+    include=["documents", "embeddings"]
 )
 
 retrieved_documents = results["documents"]
@@ -168,3 +201,7 @@ def generate_final_answer(query, context, model_name=MODEL):
 res = generate_final_answer(query=original_query, context=context)
 print("Final Answer:")
 print(res)
+
+# Save embedding cache
+with open('embedding_cache.pkl', 'wb') as f:
+    pickle.dump(embedding_cache, f)

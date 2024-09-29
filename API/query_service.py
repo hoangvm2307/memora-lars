@@ -1,4 +1,3 @@
-from langchain_community.llms import Ollama
 from prompts import prompts
 from params.answer_params import AnswerParams
 import vertexai
