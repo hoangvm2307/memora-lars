@@ -1,8 +1,6 @@
 from flask import Flask, request, jsonify
 import os
 from dotenv import load_dotenv
-from langchain_community.llms import Ollama
-from langchain_community.embeddings import OllamaEmbeddings
 import chromadb
 from sentence_transformers import CrossEncoder
 import numpy as np
@@ -10,7 +8,8 @@ from query_service import generate_final_answer, generate_multi_query
 from params.answer_params import AnswerParams
 from chroma_service import add_documents_to_chroma
 from pdf_service import load_and_split_pdf
-
+import asyncio
+import base64
 app = Flask(__name__)
 
 # Load environment variables
@@ -18,24 +17,23 @@ load_dotenv()
 
 # Initialize global variables
 MODEL = "llama3.1:8b"
-model = Ollama(model=MODEL)
-embeddings = OllamaEmbeddings(model=MODEL)
+
 chroma_client = chromadb.Client()
 cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
 
 @app.route("/initialize", methods=["POST"])
-def process_pdf():
-    file_path = request.json.get("filename")
-    print("File path: ", file_path)
-    if not file_path:
+async def initialize():
+    file_name = request.json.get("filename")
+    print("File path: ", file_name)
+    if not file_name:
         return jsonify({"error": "No selected file"}), 400
 
     try:
-        texts = load_and_split_pdf(file_path)
-        collection_name = f"{file_path.replace('.pdf', '')}-collection"
+        texts = await asyncio.to_thread(load_and_split_pdf, file_name)
+        collection_name = f"{file_name.replace('.pdf', '')}-collection"
         add_documents_to_chroma(chroma_client, collection_name, texts)
-
+        
         return jsonify(
             {
                 "message": "PDF processed successfully",
@@ -45,7 +43,31 @@ def process_pdf():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/process-document", methods=["POST"])
+async def process_pdf():
+    data = request.json
+    file_name = data.get("filename")
+    file_content = data.get("fileContent")
 
+    if not file_name or not file_content:
+        return jsonify({"error": "No file data provided"}), 400
+
+    try:
+        # Decode Base64 content
+        pdf_content = base64.b64decode(file_content)
+
+        # Process the PDF content
+        texts = await asyncio.to_thread(load_and_split_pdf, pdf_content)
+        collection_name = f"{file_name.replace('.pdf', '')}-collection"
+        add_documents_to_chroma(chroma_client, collection_name, texts)
+        
+        return jsonify({
+            "message": "PDF processed successfully",
+            "collection_name": collection_name,
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 @app.route("/query", methods=["POST"])
 def query():
     data = request.json
@@ -57,17 +79,16 @@ def query():
     prompt_type = data["prompt_type"] if "prompt_type" in data else "default"
     count = data["count"] if "count" in data else 5
  
-    
     print(f"Quiz count: {count}")
     chroma_collection = chroma_client.get_collection(collection_name)
 
-    # Generate multi queries related to original query
-    generated_queries = generate_multi_query(original_query)
-    queries = [original_query] + generated_queries
+    # # Generate multi queries related to original query
+    # generated_queries = generate_multi_query(original_query)
+    # queries = [original_query] + generated_queries
 
     # Retrieve documents with augmented queries
     results = chroma_collection.query(
-        query_texts=queries, n_results=10, include=["documents", "embeddings"]
+        query_texts=original_query, n_results=5, include=["documents", "embeddings"]
     )
 
     # Get unique documents
@@ -82,7 +103,7 @@ def query():
     scores = cross_encoder.predict(pairs)
 
     # Get the top 5 documents based on scores
-    top_indices = np.argsort(scores)[::-1][:5]
+    top_indices = np.argsort(scores)[::-1][:3]
     top_documents = [unique_documents[i] for i in top_indices]
     top_scores = [scores[i] for i in top_indices]
 
