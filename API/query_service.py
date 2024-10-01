@@ -3,10 +3,9 @@ from params.answer_params import AnswerParams
 import vertexai
 from langchain_google_vertexai import VertexAI
 
-MODEL = "llama3.1:8b"
+ 
 
-
-def generate_final_answer(config: AnswerParams, model=MODEL):
+def generate_final_answer(config: AnswerParams):
     vertexai.init(project="memora-436413", location="asia-southeast1")
     MODEL = "gemini-1.5-flash-001"
     model = VertexAI(model_name=MODEL)

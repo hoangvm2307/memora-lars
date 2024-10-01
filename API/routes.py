@@ -14,10 +14,7 @@ app = Flask(__name__)
 
 # Load environment variables
 load_dotenv()
-
-# Initialize global variables
-MODEL = "llama3.1:8b"
-
+ 
 chroma_client = chromadb.Client()
 cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 

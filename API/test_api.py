@@ -2,13 +2,14 @@ import requests
 import json
 import os
 import time
+from dotenv import load_dotenv
+load_dotenv()
 
-# API endpoint URLs
-BASE_URL = (
-    "http://localhost:5000"  # Change this if your API is running on a different address
-)
-PROCESS_PDF_URL = f"{BASE_URL}/initialize"
-QUERY_URL = f"{BASE_URL}/query"
+# Lấy giá trị từ biến môi trường
+BASE_URL = os.getenv('BASE_URL', 'http://localhost:5000')
+PROCESS_PDF_URL = os.getenv('PROCESS_PDF_URL', f"{BASE_URL}/initialize")
+QUERY_URL = os.getenv('QUERY_URL', f"{BASE_URL}/query")
+
 start_time = time.time()
 def test_process_pdf():
     # Path to your test PDF file
