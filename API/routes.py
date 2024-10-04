@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 import os
 from dotenv import load_dotenv
 import chromadb
-from sentence_transformers import CrossEncoder
+# from sentence_transformers import CrossEncoder
 import numpy as np
 from query_service import generate_final_answer, generate_multi_query
 from params.answer_params import AnswerParams
@@ -16,7 +16,7 @@ app = Flask(__name__)
 load_dotenv()
  
 chroma_client = chromadb.Client()
-cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+# cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
 
 @app.route("/initialize", methods=["POST"])
@@ -97,29 +97,29 @@ def query():
     unique_documents = list(unique_documents)
 
     pairs = [[original_query, doc] for doc in unique_documents]
-    scores = cross_encoder.predict(pairs)
+    # scores = cross_encoder.predict(pairs)
 
     # Get the top 5 documents based on scores
-    top_indices = np.argsort(scores)[::-1][:3]
-    top_documents = [unique_documents[i] for i in top_indices]
-    top_scores = [scores[i] for i in top_indices]
+    # top_indices = np.argsort(scores)[::-1][:3]
+    # top_documents = [unique_documents[i] for i in top_indices]
+    # top_scores = [scores[i] for i in top_indices]
 
     # Generate final answer based on the top documents' context
-    context = "\n\n".join(top_documents)
+    context = "\n\n".join(unique_documents)
     params = AnswerParams(original_query, context, prompt_type, count)
     final_answer = generate_final_answer(params)
 
     # Prepare the response with top documents and their scores
-    top_documents_with_scores = [
-        {"document": doc, "score": float(score)}
-        for doc, score in zip(top_documents, top_scores)
-    ]
+    # top_documents_with_scores = [
+    #     {"document": doc, "score": float(score)}
+    #     for doc, score in zip(top_documents, top_scores)
+    # ]
 
     return jsonify(
         {
             "query": original_query,
             "answer": final_answer,
-            "top_documents": top_documents_with_scores,
+            # "top_documents": top_documents_with_scores,
         }
     ), 200
 

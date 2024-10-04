@@ -110,21 +110,21 @@ for document in results["documents"][0]:
     print(word_wrap(document))
     print("")
 
-from sentence_transformers import CrossEncoder
+# from sentence_transformers import CrossEncoder
 
 # Rank documents with cross-encoder
-cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+# cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
 pairs = [[query, doc] for doc in retrieved_documents]
-scores = cross_encoder.predict(pairs)
+# scores = cross_encoder.predict(pairs)
 
-print("Scores:")
-for score in scores:
-    print(score)
+# print("Scores:")
+# for score in scores:
+#     print(score)
 
-print("New Ordering:")
-for o in np.argsort(scores)[::-1]:
-    print(o + 1)
+# print("New Ordering:")
+# for o in np.argsort(scores)[::-1]:
+#     print(o + 1)
 
 original_query = "What is the purpose of .NET"
 
@@ -165,21 +165,21 @@ pairs = []
 for doc in unique_documents:
     pairs.append([original_query, doc])
 
-scores = cross_encoder.predict(pairs)
+# scores = cross_encoder.predict(pairs)
 
-print("Scores:")
-for score in scores:
-    print(score)
+# print("Scores:")
+# for score in scores:
+#     print(score)
 
-print("New Ordering:")
-for o in np.argsort(scores)[::-1]:
-    print(o)
+# print("New Ordering:")
+# for o in np.argsort(scores)[::-1]:
+#     print(o)
 
-top_indices = np.argsort(scores)[::-1][:3]
-top_documents = [unique_documents[i] for i in top_indices]
+# top_indices = np.argsort(scores)[::-1][:3]
+# top_documents = [unique_documents[i] for i in top_indices]
 
 # Concatenate the top documents into a single context
-context = "\n\n".join(top_documents)
+context = "\n\n".join(unique_documents)
 
 # Generate the final answer using the Vertex AI model
 def generate_final_answer(query, context, model_name=MODEL):
