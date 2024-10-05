@@ -100,7 +100,7 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'pdf'}
 
 
-@app.route("/query", methods=["POST"])
+@app.route("/quizzes", methods=["POST"])
 def query():
     data = request.json
     if not data or "query" not in data or "collection_name" not in data:
@@ -109,6 +109,8 @@ def query():
     original_query = data["query"]
     collection_name = data["collection_name"]
     prompt_type = data["prompt_type"] if "prompt_type" in data else "default"
+    if prompt_type != "multiple_choice" and prompt_type != "true_false":
+        return jsonify({"error": "Invalid prompt type"}), 400
     count = data["count"] if "count" in data else 5
 
     print(f"Quiz count: {count}")
@@ -156,6 +158,66 @@ def query():
             "answer": final_answer,
         }
     ), 200
+
+
+@app.route("/cards", methods=["POST"])
+def query():
+    data = request.json
+    if not data or "query" not in data or "collection_name" not in data:
+        return jsonify({"error": "Missing query or collection_name"}), 400
+
+    original_query = data["query"]
+    collection_name = data["collection_name"]
+    prompt_type = data["prompt_type"] if "prompt_type" in data else "default"
+    prompt_type = "card"
+    count = data["count"] if "count" in data else 5
+
+    print(f"Quiz count: {count}")
+    chroma_collection = chroma_client.get_collection(collection_name)
+
+    # # Generate multi queries related to original query
+    # generated_queries = generate_multi_query(original_query)
+    # queries = [original_query] + generated_queries
+
+    # Retrieve documents with augmented queries
+    results = chroma_collection.query(
+        query_texts=original_query, n_results=5, include=["documents", "embeddings"]
+    )
+
+    # Get unique documents
+    unique_documents = set()
+    for documents in results["documents"]:
+        for document in documents:
+            unique_documents.add(document)
+
+    unique_documents = list(unique_documents)
+
+    pairs = [[original_query, doc] for doc in unique_documents]
+    # scores = cross_encoder.predict(pairs)
+
+    # Get the top 5 documents based on scores
+    # top_indices = np.argsort(scores)[::-1][:3]
+    # top_documents = [unique_documents[i] for i in top_indices]
+    # top_scores = [scores[i] for i in top_indices]
+
+    # Generate final answer based on the top documents' context
+    context = "\n\n".join(unique_documents)
+    params = AnswerParams(original_query, context, prompt_type, count)
+    final_answer = generate_final_answer(params)
+
+    # Prepare the response with top documents and their scores
+    # top_documents_with_scores = [
+    #     {"document": doc, "score": float(score)}
+    #     for doc, score in zip(top_documents, top_scores)
+    # ]
+
+    return jsonify(
+        {
+            "query": original_query,
+            "answer": final_answer,
+        }
+    ), 200
+
 
 
 if __name__ == "__main__":
