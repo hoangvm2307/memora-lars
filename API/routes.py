@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 import os
 from dotenv import load_dotenv
 import chromadb
+
 # from sentence_transformers import CrossEncoder
 import numpy as np
 from query_service import generate_final_answer, generate_multi_query
@@ -10,35 +11,84 @@ from chroma_service import add_documents_to_chroma
 from pdf_service import load_and_split_pdf
 import asyncio
 import base64
+import logging
+from typing import Optional, Tuple
+
 app = Flask(__name__)
 
 # Load environment variables
 load_dotenv()
- 
+
 chroma_client = chromadb.Client()
+
+
 # cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+def decode_base64_content(
+    base64_string: str,
+) -> Tuple[bool, Optional[bytes], Optional[str]]:
+    """
+    Decode base64 string and handle padding issues
+    Returns: (success, decoded_content, error_message)
+    """
+    try:
+        # Ensure proper padding
+        missing_padding = len(base64_string) % 4
+        if missing_padding:
+            base64_string += "=" * (4 - missing_padding)
+
+        # Try to decode
+        decoded_content = base64.b64decode(base64_string)
+        return True, decoded_content, None
+
+    except Exception as e:
+        logging.error(f"Base64 decode error: {str(e)}")
+        return False, None, str(e)
 
 
 @app.route("/initialize", methods=["POST"])
-async def initialize():
-    file_name = request.json.get("filename")
-    print("File path: ", file_name)
-    if not file_name:
-        return jsonify({"error": "No selected file"}), 400
-
+async def process_document():
     try:
-        texts = await asyncio.to_thread(load_and_split_pdf, file_name)
-        collection_name = f"{file_name.replace('.pdf', '')}-collection"
+        # Get and validate request data
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        file_content = data.get("fileContent")
+        if not file_content:
+            return jsonify({"error": "No file content provided"}), 400
+
+        # Clean the base64 string
+        # Remove potential data URL prefix
+        if "," in file_content:
+            file_content = file_content.split(",")[1]
+
+        # Remove whitespace and newlines
+        file_content = file_content.strip().replace("\n", "").replace("\r", "")
+
+        # Decode base64
+        success, decoded_content, error = decode_base64_content(file_content)
+        if not success:
+            return jsonify({"error": f"Base64 decode error: {error}"}), 400
+
+        # Process the PDF content
+        texts = await asyncio.to_thread(load_and_split_pdf, decoded_content)
+        collection_name = (
+            f"{data.get('filename', 'unnamed').replace('.pdf', '')}-collection"
+        )
+
         add_documents_to_chroma(chroma_client, collection_name, texts)
-        
+
         return jsonify(
             {
                 "message": "PDF processed successfully",
                 "collection_name": collection_name,
             }
         ), 200
+
     except Exception as e:
+        logging.error(f"Error processing document: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
 
 @app.route("/process-document", methods=["POST"])
 async def process_pdf():
@@ -57,14 +107,17 @@ async def process_pdf():
         texts = await asyncio.to_thread(load_and_split_pdf, pdf_content)
         collection_name = f"{file_name.replace('.pdf', '')}-collection"
         add_documents_to_chroma(chroma_client, collection_name, texts)
-        
-        return jsonify({
-            "message": "PDF processed successfully",
-            "collection_name": collection_name,
-        }), 200
+
+        return jsonify(
+            {
+                "message": "PDF processed successfully",
+                "collection_name": collection_name,
+            }
+        ), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
+
+
 @app.route("/query", methods=["POST"])
 def query():
     data = request.json
@@ -75,7 +128,7 @@ def query():
     collection_name = data["collection_name"]
     prompt_type = data["prompt_type"] if "prompt_type" in data else "default"
     count = data["count"] if "count" in data else 5
- 
+
     print(f"Quiz count: {count}")
     chroma_collection = chroma_client.get_collection(collection_name)
 
@@ -123,6 +176,4 @@ def query():
         }
     ), 200
 
-
-if __name__ == "__main__":
-    app.run(debug=True)
+ 
