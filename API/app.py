@@ -61,47 +61,52 @@ async def initialize():
 
 @app.route("/process-document", methods=["POST"])
 async def process_document():
-    if request.content_type.startswith('multipart/form-data'):
-        if 'file' not in request.files:
+    if request.content_type.startswith("multipart/form-data"):
+        if "file" not in request.files:
             return jsonify({"error": "Không có file nào được gửi"}), 400
-        
-        file = request.files['file']
-        
-        if file.filename == '':
+
+        file = request.files["file"]
+
+        if file.filename == "":
             return jsonify({"error": "Không có file nào được chọn"}), 400
-        
+
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
                 file.save(temp_file.name)
                 temp_file_path = temp_file.name
-            
+
             try:
                 texts = await asyncio.to_thread(load_and_split_pdf, temp_file_path)
                 collection_name = f"{filename.replace('.pdf', '')}-collection"
                 add_documents_to_chroma(chroma_client, collection_name, texts)
-                
+
                 os.unlink(temp_file_path)
-                
-                return jsonify({
-                    "message": "PDF đã được xử lý thành công",
-                    "collection_name": collection_name,
-                }), 200
+
+                return jsonify(
+                    {
+                        "message": "PDF đã được xử lý thành công",
+                        "collection_name": collection_name,
+                    }
+                ), 200
             except Exception as e:
                 os.unlink(temp_file_path)
                 return jsonify({"error": str(e)}), 500
         else:
             return jsonify({"error": "Loại file không được phép"}), 400
     else:
-        return jsonify({"error": "Content-Type không hợp lệ. Vui lòng sử dụng multipart/form-data"}), 415
+        return jsonify(
+            {"error": "Content-Type không hợp lệ. Vui lòng sử dụng multipart/form-data"}
+        ), 415
+
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'pdf'}
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in {"pdf"}
 
 
 @app.route("/quizzes", methods=["POST"])
-def query():
+def generate_quizzes():
     data = request.json
     if not data or "query" not in data or "collection_name" not in data:
         return jsonify({"error": "Missing query or collection_name"}), 400
@@ -161,7 +166,7 @@ def query():
 
 
 @app.route("/cards", methods=["POST"])
-def query():
+def generate_cards():
     data = request.json
     if not data or "query" not in data or "collection_name" not in data:
         return jsonify({"error": "Missing query or collection_name"}), 400
@@ -217,7 +222,6 @@ def query():
             "answer": final_answer,
         }
     ), 200
-
 
 
 if __name__ == "__main__":
