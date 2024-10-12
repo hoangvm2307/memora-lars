@@ -1,7 +1,7 @@
 import chromadb
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 
- 
+
 chroma_collection = None
 
 
@@ -12,6 +12,13 @@ def init_chroma():
     chroma_collection = chroma_client.create_collection(
         "microsoft-collection", embedding_function=embedding_function
     )
+
+
+def delete_user_collections(chroma_client, user_id):
+    collections = chroma_client.list_collections()
+    for collection in collections:
+        if collection.name.startswith(f"{user_id}-"):
+            chroma_client.delete_collection(collection.name)
 
 
 def query_chroma(queries, n_results=10):

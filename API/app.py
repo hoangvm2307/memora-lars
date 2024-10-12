@@ -6,7 +6,7 @@ import chromadb
 # from sentence_transformers import CrossEncoder
 from query_service import generate_final_answer
 from params.answer_params import AnswerParams
-from chroma_service import add_documents_to_chroma
+from chroma_service import add_documents_to_chroma, delete_user_collections
 from pdf_service import load_and_split_pdf
 import asyncio
 import base64
@@ -61,44 +61,42 @@ async def initialize():
 
 @app.route("/process-document", methods=["POST"])
 async def process_document():
-    if request.content_type.startswith("multipart/form-data"):
-        if "file" not in request.files:
-            return jsonify({"error": "Không có file nào được gửi"}), 400
+    if 'file' not in request.files or 'userId' not in request.form:
+        return jsonify({"error": "Thiếu file hoặc userId"}), 400
 
-        file = request.files["file"]
+    file = request.files['file']
+    user_id = request.form['userId']
 
-        if file.filename == "":
-            return jsonify({"error": "Không có file nào được chọn"}), 400
+    if file.filename == '':
+        return jsonify({"error": "Không có file nào được chọn"}), 400
 
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
 
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
-                file.save(temp_file.name)
-                temp_file_path = temp_file.name
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
+            file.save(temp_file.name)
+            temp_file_path = temp_file.name
 
-            try:
-                texts = await asyncio.to_thread(load_and_split_pdf, temp_file_path)
-                collection_name = f"{filename.replace('.pdf', '')}-collection"
-                add_documents_to_chroma(chroma_client, collection_name, texts)
+        try:
+            # Xóa tất cả các collection cũ của người dùng
+            delete_user_collections(chroma_client, user_id)
 
-                os.unlink(temp_file_path)
+            # Xử lý và thêm tài liệu mới
+            texts = await asyncio.to_thread(load_and_split_pdf, temp_file_path)
+            collection_name = f"{user_id}-{filename.replace('.pdf', '')}-collection"
+            add_documents_to_chroma(chroma_client, collection_name, texts)
 
-                return jsonify(
-                    {
-                        "message": "PDF đã được xử lý thành công",
-                        "collection_name": collection_name,
-                    }
-                ), 200
-            except Exception as e:
-                os.unlink(temp_file_path)
-                return jsonify({"error": str(e)}), 500
-        else:
-            return jsonify({"error": "Loại file không được phép"}), 400
+            os.unlink(temp_file_path)
+
+            return jsonify({
+                "message": "PDF đã được xử lý thành công và các collection cũ đã được xóa",
+                "collection_name": collection_name,
+            }), 200
+        except Exception as e:
+            os.unlink(temp_file_path)
+            return jsonify({"error": str(e)}), 500
     else:
-        return jsonify(
-            {"error": "Content-Type không hợp lệ. Vui lòng sử dụng multipart/form-data"}
-        ), 415
+        return jsonify({"error": "Loại file không được phép"}), 400
 
 
 def allowed_file(filename):
@@ -108,14 +106,19 @@ def allowed_file(filename):
 @app.route("/quizzes", methods=["POST"])
 def generate_quizzes():
     data = request.json
-    if not data or "query" not in data or "collection_name" not in data:
+    if not data or "collection_name" not in data:
         return jsonify({"error": "Missing query or collection_name"}), 400
 
-    original_query = data["query"]
+    user_id = data["userId"]
+    original_query = ""
     collection_name = data["collection_name"]
-    prompt_type = data["prompt_type"] if "prompt_type" in data else "default"
+    
+    if not collection_name.startswith(f"{user_id}-"):
+        return jsonify({"error": "Unauthorized access to collection"}), 403
+    
+    prompt_type = data["prompt_type"] if "prompt_type" in data else "multiple_choice"
     if prompt_type != "multiple_choice" and prompt_type != "true_false":
-        return jsonify({"error": "Invalid prompt type"}), 400
+        prompt_type = "multiple_choice"
     count = data["count"] if "count" in data else 5
 
     print(f"Quiz count: {count}")
@@ -168,12 +171,16 @@ def generate_quizzes():
 @app.route("/cards", methods=["POST"])
 def generate_cards():
     data = request.json
-    if not data or "query" not in data or "collection_name" not in data:
-        return jsonify({"error": "Missing query or collection_name"}), 400
+    if not data  or "collection_name" not in data:
+        return jsonify({"error": "Missing collection_name"}), 400
 
-    original_query = data["query"]
+    user_id = data["userId"]
+    original_query = ""
     collection_name = data["collection_name"]
-    prompt_type = data["prompt_type"] if "prompt_type" in data else "default"
+    
+    if not collection_name.startswith(f"{user_id}-"):
+        return jsonify({"error": "Unauthorized access to collection"}), 403
+    
     prompt_type = "card"
     count = data["count"] if "count" in data else 5
 
