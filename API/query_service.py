@@ -2,11 +2,15 @@ from prompts import prompts
 from params.answer_params import AnswerParams
 import vertexai
 from langchain_google_vertexai import VertexAI
-
+import os
  
 
 def generate_final_answer(config: AnswerParams):
-    vertexai.init(project="memora-436413", location="asia-southeast1")
+    project_id = os.getenv("GOOGLE_CLOUD_PROJECT", "memora-436413")
+    location = os.getenv("GOOGLE_CLOUD_LOCATION", "asia-southeast1")
+    
+    vertexai.init(project=project_id, location=location)
+    
     MODEL = "gemini-1.5-flash-001"
     model = VertexAI(model_name=MODEL)
     prompt = prompts[config.prompt_type].format(

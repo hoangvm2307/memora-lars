@@ -13,7 +13,7 @@ import base64
 import re
 import tempfile
 from werkzeug.utils import secure_filename
-
+import traceback
 app = Flask(__name__)
 
 # Load environment variables
@@ -93,6 +93,7 @@ async def process_document():
                 "collection_name": collection_name,
             }), 200
         except Exception as e:
+            traceback.print_exc()
             os.unlink(temp_file_path)
             return jsonify({"error": str(e)}), 500
     else:

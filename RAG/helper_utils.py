@@ -1,7 +1,6 @@
 # helper_utils.py
 import numpy as np
 import chromadb
-import pandas as pd
 from pypdf import PdfReader
 import numpy as np
 
@@ -54,39 +53,39 @@ def extract_text_from_pdf(file_path):
     return "\n".join(text)
 
 
-def load_chroma(filename, collection_name, embedding_function):
-    """
-    Loads a document from a PDF, extracts text, generates embeddings, and stores it in a Chroma collection.
+# def load_chroma(filename, collection_name, embedding_function):
+#     """
+#     Loads a document from a PDF, extracts text, generates embeddings, and stores it in a Chroma collection.
 
-    Args:
-    filename (str): The path to the PDF file.
-    collection_name (str): The name of the Chroma collection.
-    embedding_function (callable): A function to generate embeddings.
+#     Args:
+#     filename (str): The path to the PDF file.
+#     collection_name (str): The name of the Chroma collection.
+#     embedding_function (callable): A function to generate embeddings.
 
-    Returns:
-    chroma.Collection: The Chroma collection with the document embeddings.
-    """
-    # Extract text from the PDF
-    text = extract_text_from_pdf(filename)
+#     Returns:
+#     chroma.Collection: The Chroma collection with the document embeddings.
+#     """
+#     # Extract text from the PDF
+#     text = extract_text_from_pdf(filename)
 
-    # Split text into paragraphs or chunks
-    paragraphs = text.split("\n\n")
+#     # Split text into paragraphs or chunks
+#     paragraphs = text.split("\n\n")
 
-    # Generate embeddings for each chunk
-    embeddings = [embedding_function(paragraph) for paragraph in paragraphs]
+#     # Generate embeddings for each chunk
+#     embeddings = [embedding_function(paragraph) for paragraph in paragraphs]
 
-    # Create a DataFrame to store text and embeddings
-    data = {"text": paragraphs, "embeddings": embeddings}
-    df = pd.DataFrame(data)
+#     # Create a DataFrame to store text and embeddings
+#     data = {"text": paragraphs, "embeddings": embeddings}
+#     df = pd.DataFrame(data)
 
-    # Create or load the Chroma collection
+#     # Create or load the Chroma collection
 
-    collection = chromadb.Client().create_collection(collection_name)
+#     collection = chromadb.Client().create_collection(collection_name)
 
-    # Add the data to the Chroma collection
-    for ids, row in df.iterrows():
+#     # Add the data to the Chroma collection
+#     for ids, row in df.iterrows():
 
-        collection.add(ids=ids, documents=row["text"], embeddings=row["embeddings"])
-        # collection.add(text=row["text"], embedding=row["embeddings"])
+#         collection.add(ids=ids, documents=row["text"], embeddings=row["embeddings"])
+#         # collection.add(text=row["text"], embedding=row["embeddings"])
 
-    return collection
+#     return collection
