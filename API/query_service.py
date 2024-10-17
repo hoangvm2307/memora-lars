@@ -6,18 +6,11 @@ import os
 from google.oauth2.service_account import Credentials
 from google.auth.transport.requests import Request
 
+ 
 
 def generate_final_answer(config: AnswerParams):
-    keypath = "memora-436413-e75054c62ee8.json"
-
-    credentials = Credentials.from_service_account_file(
-        keypath, scopes=["https://www.googleapis.com/auth/cloud-platform"]
-    )
-    if credentials.expired:
-        credentials.refresh(Request())
-
     project_id = os.getenv("GOOGLE_CLOUD_PROJECT", "memora-436413")
-
+ 
     location = os.getenv("GOOGLE_CLOUD_LOCATION", "asia-southeast1")
 
     vertexai.init(project=project_id, location=location)
