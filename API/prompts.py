@@ -98,12 +98,14 @@ Please follow these instructions:
     - The content inside square brackets [] should be in Japanese, while the structure remains in English.
     - Format each flashcard as follows:
         Word: [Japanese word]
-        Phonetic: [Phonetic transcription]
-        Definition: [Brief definition in English]
-        Examples: 
-        1. [First example sentence in Japanese]
-        2. [Second example sentence in Japanese]
-        3. [Third example sentence in Japanese] (optional)
+        Meaning: [Brief definition in English]
+        Pronounce: [Phonetic transcription]
+        Sino-Vietnamese: [Sino-Vietnamese meaning]
+        Type: [Type of word]
+        Meaning Description: [Meaning description in Japanese]
+        Example: [Example sentence in Japanese]
+        Eample Meaning: [Meaning of the example sentence in English]
+        
 
 4. Organize and present:
     - Arrange the flashcards in the order they appear in the document.
