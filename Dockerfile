@@ -6,6 +6,5 @@ COPY . /app
 
 RUN pip install  -r requirements.txt --no-deps
 EXPOSE 5000
-ENTRYPOINT ["flask"]
-CMD ["run"]
-
+ENTRYPOINT ["flask", "run"]
+  
