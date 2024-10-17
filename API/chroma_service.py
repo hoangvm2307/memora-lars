@@ -1,5 +1,5 @@
-import chromadb
-from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
+import chromadb 
+from chromadb.utils import embedding_functions
 
 
 chroma_collection = None
@@ -8,7 +8,7 @@ chroma_collection = None
 def init_chroma():
     global chroma_client, chroma_collection
     chroma_client = chromadb.Client()
-    embedding_function = SentenceTransformerEmbeddingFunction()
+    embedding_function = embedding_functions.DefaultEmbeddingFunction()
     chroma_collection = chroma_client.create_collection(
         "microsoft-collection", embedding_function=embedding_function
     )
@@ -28,7 +28,7 @@ def query_chroma(queries, n_results=10):
 
 
 def add_documents_to_chroma(chroma_client, collection_name, token_split_texts):
-    embedding_function = SentenceTransformerEmbeddingFunction()
+    embedding_function = embedding_functions.DefaultEmbeddingFunction()
     chroma_collection = chroma_client.get_or_create_collection(
         collection_name, embedding_function=embedding_function
     )
