@@ -193,7 +193,7 @@ def generate_cards():
 
     # Retrieve documents with augmented queries
     results = chroma_collection.query(
-        query_texts=original_query, n_results=5, include=["documents", "embeddings"]
+        query_texts=original_query, n_results=1000, include=["documents", "embeddings"]
     )
 
     # Get unique documents
