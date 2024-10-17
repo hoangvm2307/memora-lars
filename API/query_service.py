@@ -3,16 +3,14 @@ from params.answer_params import AnswerParams
 import vertexai
 from langchain_google_vertexai import VertexAI
 import os
-from google.oauth2.service_account import Credentials
-from google.auth.transport.requests import Request
-
+from google.cloud import aiplatform
  
 def generate_final_answer(config: AnswerParams):
     project_id = os.getenv("GOOGLE_CLOUD_PROJECT", "memora-436413")
  
     location = os.getenv("GOOGLE_CLOUD_LOCATION", "asia-southeast1")
 
-    vertexai.init(project=project_id, location=location)
+    aiplatform.init(project=project_id, location=location)
 
     MODEL = "gemini-1.5-flash-001"
     model = VertexAI(model_name=MODEL)
