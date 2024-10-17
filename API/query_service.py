@@ -8,7 +8,7 @@ from google.auth.transport.requests import Request
 
 
 def generate_final_answer(config: AnswerParams):
-    keypath = os.getenv("KEYPATH", "memora-436413-e75054c62ee8.json")
+    keypath = "memora-436413-e75054c62ee8.json"
 
     credentials = Credentials.from_service_account_file(
         keypath, scopes=["https://www.googleapis.com/auth/cloud-platform"]
