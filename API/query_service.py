@@ -3,19 +3,30 @@ from params.answer_params import AnswerParams
 import vertexai
 from langchain_google_vertexai import VertexAI
 import os
- 
+from google.oauth2.service_account import Credentials
+from google.auth.transport.requests import Request
+
 
 def generate_final_answer(config: AnswerParams):
+    keypath = "memora-436413-e75054c62ee8.json"
+
+    credentials = Credentials.from_service_account_file(
+        keypath, scopes=["https://www.googleapis.com/auth/cloud-platform"]
+    )
+    if credentials.expired:
+        credentials.refresh(Request())
+
     project_id = os.getenv("GOOGLE_CLOUD_PROJECT", "memora-436413")
+
     location = os.getenv("GOOGLE_CLOUD_LOCATION", "asia-southeast1")
-    
-    vertexai.init(project=project_id, location=location)
-    
+
+    vertexai.init(project=project_id, location=location, credentials=credentials)
+
     MODEL = "gemini-1.5-flash-001"
     model = VertexAI(model_name=MODEL)
     prompt = prompts[config.prompt_type].format(
-            count=config.count, context=config.context, query=config.query
-        )
+        count=config.count, context=config.context, query=config.query
+    )
 
     response = model.invoke(prompt)
 
