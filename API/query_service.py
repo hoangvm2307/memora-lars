@@ -8,7 +8,7 @@ from google.auth.transport.requests import Request
 
 
 def generate_final_answer(config: AnswerParams):
-    keypath = "memora-436413-e75054c62ee8.json"
+    keypath = os.getenv("KEYPATH", "memora-436413-e75054c62ee8.json")
 
     credentials = Credentials.from_service_account_file(
         keypath, scopes=["https://www.googleapis.com/auth/cloud-platform"]
@@ -20,7 +20,7 @@ def generate_final_answer(config: AnswerParams):
 
     location = os.getenv("GOOGLE_CLOUD_LOCATION", "asia-southeast1")
 
-    vertexai.init(project=project_id, location=location, credentials=credentials)
+    vertexai.init(project=project_id, location=location)
 
     MODEL = "gemini-1.5-flash-001"
     model = VertexAI(model_name=MODEL)
