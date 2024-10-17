@@ -7,7 +7,6 @@ from google.oauth2.service_account import Credentials
 from google.auth.transport.requests import Request
 
  
-
 def generate_final_answer(config: AnswerParams):
     project_id = os.getenv("GOOGLE_CLOUD_PROJECT", "memora-436413")
  
