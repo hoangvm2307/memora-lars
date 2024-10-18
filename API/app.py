@@ -62,8 +62,11 @@ async def initialize():
 
 @app.route("/process-document", methods=["POST"])
 async def process_document():
-    if 'file' not in request.files or 'userId' not in request.form:
-        return jsonify({"error": "Thiếu file hoặc userId"}), 400
+    if 'file' not in request.files:
+        return jsonify({"error": "Thiếu file"}), 400
+
+    if 'userId' not in request.form:
+        return jsonify({"error": "Thiếu userId"}), 400
 
     file = request.files['file']
     user_id = request.form['userId']
