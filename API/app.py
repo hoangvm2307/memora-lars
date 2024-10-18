@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 import os
 from dotenv import load_dotenv
 import chromadb
+from flask_cors import CORS
 
 # from sentence_transformers import CrossEncoder
 from query_service import generate_final_answer
@@ -15,7 +16,7 @@ import tempfile
 from werkzeug.utils import secure_filename
 import traceback
 app = Flask(__name__)
-
+CORS(app)
 # Load environment variables
 load_dotenv()
 
