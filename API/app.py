@@ -87,7 +87,7 @@ async def process_document():
 
             # Xử lý và thêm tài liệu mới
             texts = await asyncio.to_thread(load_and_split_pdf, temp_file_path)
-            collection_name = f"{user_id}-{filename.replace('.pdf', '')}-collection"
+            collection_name = f"{user_id}"
             add_documents_to_chroma(chroma_client, collection_name, texts)
 
             os.unlink(temp_file_path)
@@ -118,7 +118,7 @@ def generate_quizzes():
     original_query = ""
     collection_name = data["collection_name"]
     
-    if not collection_name.startswith(f"{user_id}-"):
+    if not collection_name.startswith(f"{user_id}"):
         return jsonify({"error": "Unauthorized access to collection"}), 403
     
     prompt_type = data["prompt_type"] if "prompt_type" in data else "multiple_choice"
@@ -183,7 +183,7 @@ def generate_cards():
     original_query = ""
     collection_name = data["collection_name"]
     
-    if not collection_name.startswith(f"{user_id}-"):
+    if not collection_name.startswith(f"{user_id}"):
         return jsonify({"error": "Unauthorized access to collection"}), 403
     
     prompt_type = "card"
